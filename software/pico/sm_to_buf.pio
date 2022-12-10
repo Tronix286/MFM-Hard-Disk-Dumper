@@ -1,0 +1,34 @@
+.program sm_to_dma_to_buffer
+
+    pull
+    mov x OSR
+    wait 0 gpio 8        ; wait for a 0
+    wait 1 gpio 8        ; wait for a 1, now we really have the rising edge
+wait_delay:    
+    jmp x-- wait_delay
+start:
+    wait 0 pin 0        ; wait for a 0
+    wait 1 pin 0        ; wait for a 1, now we really have the rising edge
+.wrap_target
+    mov x ~NULL         ; start with the value 0xFFFFFFFF
+    ;mov y ~NULL         ; start with the value 0xFFFFFFFF
+timer_hp:               ; loop for high period
+    jmp x-- test        ; count down for pulse width
+    ;irq 0
+    jmp start           ; timer has reached 0, stop count down of pulse, restart
+test:
+    jmp pin timer_hp    ; test if the pin is still 1, if so, continue counting down
+timer_lp:               ; loop for low period
+    jmp pin timerstop   ; if the pin has become 1, the period is over, stop count down
+    jmp x-- timer_lp    ; if not: count down
+    ;irq 0
+    jmp start           ; timer has reached 0, stop count down of low period, restart
+timerstop:
+;    mov ISR ~y          ; move the value ~y to the ISR: the high period (pulsewidth) (0xFFFFFFFF-x)
+;    push noblock        ; push the ISR into the Rx FIFO
+    mov ISR ~x          ; move the value ~x to the ISR: the low period (0xFFFFFFFF-x)
+    push noblock        ; push the ISR into the Rx FIFO
+    ;mov x,~NULL
+    ;mov y,~NULL
+    ;jmp timer_hp
+.wrap
